@@ -2,7 +2,7 @@
 
 import { Perfil, sair } from "./api";
 
-export default function Header({ perfil, ativo }: { perfil: Perfil | null; ativo: "painel" | "gestao" }) {
+export default function Header({ perfil, ativo }: { perfil: Perfil | null; ativo: "nao-renovadas" | "canceladas" | "gestao" }) {
   const link = (href: string, rotulo: string, chave: string) => (
     <a
       href={href}
@@ -16,14 +16,13 @@ export default function Header({ perfil, ativo }: { perfil: Perfil | null; ativo
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         <a href="/painel" className="flex items-baseline gap-3">
           <span className="font-display text-gold text-2xl">Piaseg</span>
-          <span className="text-white/80 text-sm hidden sm:inline">Apólices não Renovadas</span>
+          <span className="text-white/80 text-sm hidden sm:inline">Apólices</span>
         </a>
-        {perfil?.admin && (
-          <nav className="flex gap-1">
-            {link("/painel", "Painel", "painel")}
-            {link("/gestao", "Importar e acessos", "gestao")}
-          </nav>
-        )}
+        <nav className="flex gap-1">
+          {link("/painel", "Não renovadas", "nao-renovadas")}
+          {link("/canceladas", "Canceladas", "canceladas")}
+          {perfil?.admin && link("/gestao", "Importar e acessos", "gestao")}
+        </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">
           <span className="text-white/80 truncate max-w-[180px]">{perfil?.nome}</span>
           <button onClick={() => sair()} className="rounded-lg border border-white/30 px-3 py-1 hover:bg-white/10">

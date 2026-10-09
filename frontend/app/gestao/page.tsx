@@ -7,7 +7,7 @@ import { dataBR, dataHoraBR, titulo } from "../lib/format";
 
 type Importacao = { id: number; arquivo: string; autor: string; linhas: number; novas: number; atualizadas: number; ignoradas: number; criado_em: string };
 type Acessos = {
-  franqueados: { franqueado: string; apolices: number; usuarios: string[] }[];
+  franqueados: { franqueado: string; apolices: number; canceladas: number; usuarios: string[] }[];
   usuarios_portal: { usuario: string; nome: string }[];
   admins: string[];
 };
@@ -31,7 +31,20 @@ export default function Gestao() {
       <main className="max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
         {perfil?.admin && (
           <>
-            <Importar />
+            <Importar
+              prefixo=""
+              titulo="Importar relatório de não renovadas"
+              arquivo="RptApolicesNaoRenovadas.XLS"
+              pasta="Drive › TI › Apólices não renovadas"
+              evento="vencimentos"
+            />
+            <Importar
+              prefixo="/canceladas"
+              titulo="Importar relatório de canceladas"
+              arquivo="RptDocsEmitidos.XLS"
+              pasta="Drive › TI › Apólices Canceladas"
+              evento="cancelamentos"
+            />
             <AcessosSecao />
           </>
         )}
@@ -40,7 +53,9 @@ export default function Gestao() {
   );
 }
 
-function Importar() {
+type ImportarProps = { prefixo: string; titulo: string; arquivo: string; pasta: string; evento: string };
+
+function Importar({ prefixo, titulo: tituloSecao, arquivo: nomeArquivo, pasta, evento }: ImportarProps) {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState("");
@@ -48,8 +63,8 @@ function Importar() {
   const [historico, setHistorico] = useState<Importacao[]>([]);
 
   const carregar = useCallback(() => {
-    api<Importacao[]>("/admin/importacoes").then(setHistorico).catch(() => {});
-  }, []);
+    api<Importacao[]>(`${prefixo}/admin/importacoes`).then(setHistorico).catch(() => {});
+  }, [prefixo]);
   useEffect(carregar, [carregar]);
 
   async function enviar() {
@@ -60,9 +75,9 @@ function Importar() {
     const fd = new FormData();
     fd.append("arquivo", arquivo);
     try {
-      const r = await api<{ linhas: number; novas: number; atualizadas: number; ignoradas: number; periodo: [string, string] }>("/admin/importar", { method: "POST", body: fd });
+      const r = await api<{ linhas: number; novas: number; atualizadas: number; ignoradas: number; periodo: [string, string] }>(`${prefixo}/admin/importar`, { method: "POST", body: fd });
       setResultado(
-        `${r.linhas} apólices lidas (vencimentos de ${dataBR(r.periodo[0])} a ${dataBR(r.periodo[1])}): ${r.novas} novas, ${r.atualizadas} já existentes atualizadas, ${r.ignoradas} das unidades próprias da Piaseg ignoradas.`
+        `${r.linhas} apólices lidas (${evento} de ${dataBR(r.periodo[0])} a ${dataBR(r.periodo[1])}): ${r.novas} novas, ${r.atualizadas} já existentes atualizadas, ${r.ignoradas} das unidades próprias da Piaseg ignoradas.`
       );
       setArquivo(null);
       carregar();
@@ -76,9 +91,9 @@ function Importar() {
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
       <div>
-        <h2 className="font-semibold text-navy text-lg">Importar relatório do Quiver</h2>
+        <h2 className="font-semibold text-navy text-lg">{tituloSecao}</h2>
         <p className="text-sm text-gray-600 mt-1">
-          Envie o arquivo <strong>RptApolicesNaoRenovadas.XLS</strong> (Drive › TI › Apólices não renovadas). Apólices já existentes são
+          Envie o arquivo <strong>{nomeArquivo}</strong> do Quiver ({pasta}). Apólices já existentes são
           atualizadas e as respostas dos franqueados são sempre mantidas. Unidades Campo Grande - Piaseg, Dourados - Piaseg, Piaseg
           Consultoria e Studio Agronegócios são ignoradas automaticamente.
         </p>
@@ -125,7 +140,7 @@ function AcessosSecao() {
   useEffect(carregar, [carregar]);
 
   const nomePorUsuario = useMemo(() => Object.fromEntries((dados?.usuarios_portal || []).map((u) => [u.usuario, u.nome])), [dados]);
-  const semAcesso = dados?.franqueados.filter((f) => f.usuarios.length === 0 && f.apolices > 0) || [];
+  const semAcesso = dados?.franqueados.filter((f) => f.usuarios.length === 0 && f.apolices + f.canceladas > 0) || [];
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
@@ -149,7 +164,7 @@ function AcessosSecao() {
               <div className="flex flex-wrap items-start gap-3">
                 <div className="min-w-[220px]">
                   <div className="font-medium text-navy">{titulo(f.franqueado)}</div>
-                  <div className="text-xs text-gray-500">{f.apolices} apólices</div>
+                  <div className="text-xs text-gray-500">{f.apolices} não renovadas · {f.canceladas} canceladas</div>
                 </div>
                 <div className="flex-1 flex flex-wrap gap-1.5">
                   {f.usuarios.length === 0 && <span className="text-sm text-gray-400">Nenhum login vinculado</span>}

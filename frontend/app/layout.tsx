@@ -6,8 +6,8 @@ const cinzel = Cinzel_Decorative({ variable: "--font-cinzel", subsets: ["latin"]
 const jost = Jost({ variable: "--font-jost", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Apólices não Renovadas · Piaseg",
-  description: "Acompanhamento das apólices não renovadas por franqueado",
+  title: "Apólices não Renovadas e Canceladas · Piaseg",
+  description: "Acompanhamento das apólices não renovadas e canceladas por franqueado",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

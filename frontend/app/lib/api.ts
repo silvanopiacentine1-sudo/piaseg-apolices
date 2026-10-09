@@ -15,9 +15,12 @@ export type Apolice = {
   franqueado: string;
   unidade: string;
   cliente: string;
-  documento: string;
+  documento?: string; // só nas não renovadas
   seguradora: string;
-  termino: string;
+  termino?: string; // não renovadas: término da vigência
+  cancelamento?: string; // canceladas: data do cancelamento
+  vigencia_inicio?: string | null;
+  vigencia_fim?: string | null;
   numero: string;
   produto: string;
   premio: number;

@@ -67,3 +67,56 @@ class Importacao(Base):
     novas = Column(Integer, default=0)
     atualizadas = Column(Integer, default=0)
     ignoradas = Column(Integer, default=0)
+
+
+# ---------------------------------------------------------------- apólices canceladas
+# Mesma ideia das tabelas acima, alimentadas pelo relatório de cancelamentos (RptDocsEmitidos) do Quiver.
+# Vínculos e gestores são compartilhados entre os dois painéis.
+
+
+class CancApolice(Base):
+    __tablename__ = "canc_apolices"
+
+    id = Column(Integer, primary_key=True)
+    # chave natural: seguradora + apólice + data de cancelamento + vigência (endossos geram linhas repetidas)
+    chave = Column(String(255), unique=True, nullable=False, index=True)
+    unidade = Column(String(255), nullable=False)
+    franqueado = Column(String(255), nullable=False, index=True)
+    cliente = Column(String(255), nullable=False)
+    seguradora = Column(String(120), default="")
+    cancelamento = Column(Date, nullable=False, index=True)
+    vigencia_inicio = Column(Date, nullable=True)
+    vigencia_fim = Column(Date, nullable=True)
+    numero = Column(String(80), default="")
+    produto = Column(String(160), default="")  # coluna CÉLULA do Quiver (Automóvel, Patrimonial...)
+    premio = Column(Float, default=0.0)
+    # False quando a apólice não veio na última planilha importada (cancelamento pode ter sido estornado)
+    no_ultimo_relatorio = Column(Boolean, default=True)
+    importado_em = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(80), nullable=True)
+    respondido_em = Column(DateTime, nullable=True)
+
+
+class CancResposta(Base):
+    __tablename__ = "canc_respostas"
+
+    id = Column(Integer, primary_key=True)
+    apolice_id = Column(Integer, ForeignKey("canc_apolices.id", ondelete="CASCADE"), index=True, nullable=False)
+    status = Column(String(80), nullable=False)
+    comentario = Column(Text, default="")
+    autor_usuario = Column(String(255), nullable=False)
+    autor_nome = Column(String(255), default="")
+    criado_em = Column(DateTime, default=datetime.utcnow)
+
+
+class CancImportacao(Base):
+    __tablename__ = "canc_importacoes"
+
+    id = Column(Integer, primary_key=True)
+    arquivo = Column(String(255), default="")
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    autor = Column(String(255), default="")
+    linhas = Column(Integer, default=0)
+    novas = Column(Integer, default=0)
+    atualizadas = Column(Integer, default=0)
+    ignoradas = Column(Integer, default=0)

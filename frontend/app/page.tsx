@@ -38,7 +38,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="font-display text-gold text-4xl tracking-wide">Piaseg</div>
-          <div className="text-white/80 mt-2 text-lg">Apólices não Renovadas</div>
+          <div className="text-white/80 mt-2 text-lg">Apólices não Renovadas e Canceladas</div>
         </div>
         <form onSubmit={entrar} className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
           {aviso && <p className="text-sm bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">{aviso}</p>}

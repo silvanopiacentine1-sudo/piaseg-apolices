@@ -13,13 +13,16 @@ from pydantic import BaseModel
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
+import canceladas
 import models
+from acesso import eh_admin, exigir_admin, franqueados_do_usuario
 from auth import UsuarioAtual, criar_token, usuarios_portal, verificar_senha
 from database import Base, engine, get_db
 from importer import ler_relatorio
 
-app = FastAPI(title="Piaseg · Apólices não renovadas")
+app = FastAPI(title="Piaseg · Apólices não renovadas e canceladas")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.include_router(canceladas.router)
 
 STATUS_OPCOES = [
     "Renovado com a Piaseg (pendente de baixa no sistema)",
@@ -55,6 +58,7 @@ VINCULOS_INICIAIS = {
     "MAURICIO PARDINHO": ["mauriciocg@piaseg.com.br"],
     "RENATA PIRES AMOROSO LIMA": ["renata.amoroso@piaseg.com.br"],
     "ROQUE HOSANO DOS SANTOS CRUZ": ["souvencer50@gmail.com"],
+    "SONIMAR MACHADO": ["sonimarmachado@gmail.com"],
     "TERRA": ["seguros2@grupoterradourados.com.br", "seguro@imobiliariaterradourados.com.br"],
 }
 ADMINS_INICIAIS = ["admin"]
@@ -82,14 +86,6 @@ def startup():
 
 
 # ---------------------------------------------------------------- helpers
-
-def eh_admin(db: Session, usuario: str) -> bool:
-    return db.get(models.Admin, usuario) is not None
-
-
-def franqueados_do_usuario(db: Session, usuario: str) -> List[str]:
-    return sorted({v.franqueado for v in db.query(models.Vinculo).filter(models.Vinculo.usuario == usuario)})
-
 
 def perfil(db: Session, user: dict) -> dict:
     admin = eh_admin(db, user["usuario"])
@@ -164,7 +160,7 @@ class LoginIn(BaseModel):
 
 @app.get("/")
 def raiz():
-    return {"ok": True, "app": "apolices-nao-renovadas"}
+    return {"ok": True, "app": "apolices-nao-renovadas-e-canceladas"}
 
 
 @app.post("/auth/login")
@@ -361,12 +357,6 @@ def exportar(
 
 # ---------------------------------------------------------------- admin
 
-def exigir_admin(user: dict = UsuarioAtual, db: Session = Depends(get_db)):
-    if not eh_admin(db, user["usuario"]):
-        raise HTTPException(403, "Acesso restrito ao gestor.")
-    return user
-
-
 @app.post("/admin/importar")
 async def importar(arquivo: UploadFile = File(...), user: dict = Depends(exigir_admin), db: Session = Depends(get_db)):
     conteudo = await arquivo.read()
@@ -424,10 +414,13 @@ def acessos(user: dict = Depends(exigir_admin), db: Session = Depends(get_db)):
     contagem = dict(
         db.query(models.Apolice.franqueado, func.count(models.Apolice.id)).group_by(models.Apolice.franqueado).all()
     )
+    contagem_canc = dict(
+        db.query(models.CancApolice.franqueado, func.count(models.CancApolice.id)).group_by(models.CancApolice.franqueado).all()
+    )
     vinc = defaultdict(list)
     for v in db.query(models.Vinculo):
         vinc[v.franqueado].append(v.usuario)
-    nomes = sorted(set(contagem) | set(vinc))
+    nomes = sorted(set(contagem) | set(contagem_canc) | set(vinc))
     try:
         portal = [{"usuario": str(u.get("u", "")).lower(), "nome": u.get("nome", "")} for u in usuarios_portal()]
     except HTTPException:
@@ -438,7 +431,10 @@ def acessos(user: dict = Depends(exigir_admin), db: Session = Depends(get_db)):
             vistos.add(u["usuario"])
             usuarios.append(u)
     return {
-        "franqueados": [{"franqueado": n, "apolices": contagem.get(n, 0), "usuarios": sorted(vinc.get(n, []))} for n in nomes],
+        "franqueados": [
+            {"franqueado": n, "apolices": contagem.get(n, 0), "canceladas": contagem_canc.get(n, 0), "usuarios": sorted(vinc.get(n, []))}
+            for n in nomes
+        ],
         "usuarios_portal": usuarios,
         "admins": sorted(a.usuario for a in db.query(models.Admin)),
     }
@@ -483,6 +479,11 @@ def backup(user: dict = Depends(exigir_admin), db: Session = Depends(get_db)):
             {"chave": a.chave, "status": r.status, "comentario": r.comentario, "autor_usuario": r.autor_usuario,
              "autor_nome": r.autor_nome, "criado_em": r.criado_em.isoformat()}
             for r, a in db.query(models.Resposta, models.Apolice).join(models.Apolice, models.Apolice.id == models.Resposta.apolice_id)
+        ],
+        "respostas_canceladas": [
+            {"chave": a.chave, "status": r.status, "comentario": r.comentario, "autor_usuario": r.autor_usuario,
+             "autor_nome": r.autor_nome, "criado_em": r.criado_em.isoformat()}
+            for r, a in db.query(models.CancResposta, models.CancApolice).join(models.CancApolice, models.CancApolice.id == models.CancResposta.apolice_id)
         ],
         "vinculos": [{"usuario": v.usuario, "franqueado": v.franqueado} for v in db.query(models.Vinculo)],
         "admins": [a.usuario for a in db.query(models.Admin)],
