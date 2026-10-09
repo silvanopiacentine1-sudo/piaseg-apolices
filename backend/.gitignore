@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.db
+.env
+*.xls
+*.XLS
+*.xlsx
