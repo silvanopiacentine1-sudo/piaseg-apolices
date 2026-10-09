@@ -20,7 +20,12 @@ export default function Header({ perfil, ativo }: { perfil: Perfil | null; ativo
         </a>
         <nav className="flex gap-1">
           {link("/painel", "Não renovadas", "nao-renovadas")}
-          {link("/canceladas", "Canceladas", "canceladas")}
+          <a
+            href="/canceladas"
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium bg-gold text-navy hover:bg-gold-2 hover:text-white ${ativo === "canceladas" ? "ring-2 ring-white/80" : ""}`}
+          >
+            Canceladas
+          </a>
           {perfil?.admin && link("/gestao", "Importar e acessos", "gestao")}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">

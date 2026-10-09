@@ -17,6 +17,7 @@ type Config = {
   data: (a: Apolice) => string; // data que define o mês
   pergunta: string;
   dicaComentario: string;
+  cores: { respondidas: string; aguardando: string }; // barras do gráfico por mês
 };
 
 const CONFIG: Record<Tipo, Config> = {
@@ -28,6 +29,7 @@ const CONFIG: Record<Tipo, Config> = {
     data: (a) => a.termino || "",
     pergunta: "O que aconteceu com este cliente?",
     dicaComentario: "Comentário (opcional): detalhes do contato, próximo passo, valor da concorrência...",
+    cores: { respondidas: "#072a3c", aguardando: "#9db4c3" },
   },
   canceladas: {
     prefixo: "/canceladas",
@@ -37,6 +39,7 @@ const CONFIG: Record<Tipo, Config> = {
     data: (a) => a.cancelamento || "",
     pergunta: "Por que esta apólice foi cancelada?",
     dicaComentario: "Comentário (opcional): detalhes do contato, próximo passo, se dá para recuperar o cliente...",
+    cores: { respondidas: "#b91c1c", aguardando: "#f4a3a3" },
   },
 };
 
@@ -170,11 +173,11 @@ export default function PainelApolices({ tipo }: { tipo: Tipo }) {
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <h2 className="font-semibold text-navy">Apólices {cfg.nome} por mês de {cfg.eventoMes}</h2>
             <div className="flex items-center gap-4 text-xs text-gray-600 ml-auto">
-              <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded-sm bg-navy inline-block" />Respondidas</span>
-              <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded-sm bg-[#9db4c3] inline-block" />Aguardando resposta</span>
+              <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded-sm inline-block" style={{ background: cfg.cores.respondidas }} />Respondidas</span>
+              <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded-sm inline-block" style={{ background: cfg.cores.aguardando }} />Aguardando resposta</span>
             </div>
           </div>
-          {resumo ? <GraficoMeses meses={resumo.meses} selecionado={mes} onSelecionar={(m) => setMes(m === mes ? null : m)} /> : <Carregando />}
+          {resumo ? <GraficoMeses cores={cfg.cores} meses={resumo.meses} selecionado={mes} onSelecionar={(m) => setMes(m === mes ? null : m)} /> : <Carregando />}
           <div className="flex flex-wrap gap-1.5 mt-4">
             <Chip ativo={mes === null} onClick={() => setMes(null)}>Todos os meses</Chip>
             {resumo?.meses.filter((m) => m.qtd > 0).map((m) => (
@@ -263,7 +266,7 @@ function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => voi
   );
 }
 
-function GraficoMeses({ meses, selecionado, onSelecionar }: { meses: MesResumo[]; selecionado: number | null; onSelecionar: (m: number) => void }) {
+function GraficoMeses({ cores, meses, selecionado, onSelecionar }: { cores: Config["cores"]; meses: MesResumo[]; selecionado: number | null; onSelecionar: (m: number) => void }) {
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(1, ...meses.map((m) => m.qtd));
   const altura = 180;
@@ -294,10 +297,10 @@ function GraficoMeses({ meses, selecionado, onSelecionar }: { meses: MesResumo[]
                 style={{ height: h }}
               >
                 {m.qtd - m.respondidas > 0 && (
-                  <div className="w-full bg-[#9db4c3] rounded-t" style={{ flexGrow: m.qtd - m.respondidas }} />
+                  <div className="w-full rounded-t" style={{ flexGrow: m.qtd - m.respondidas, background: cores.aguardando }} />
                 )}
                 {m.respondidas > 0 && (
-                  <div className={`w-full bg-navy ${m.respondidas === m.qtd ? "rounded-t" : ""}`} style={{ flexGrow: m.respondidas, minHeight: hResp ? 2 : 0 }} />
+                  <div className={`w-full ${m.respondidas === m.qtd ? "rounded-t" : ""}`} style={{ flexGrow: m.respondidas, minHeight: hResp ? 2 : 0, background: cores.respondidas }} />
                 )}
               </div>
               {ativo && <span className="absolute -bottom-[3px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-gold rounded" />}
