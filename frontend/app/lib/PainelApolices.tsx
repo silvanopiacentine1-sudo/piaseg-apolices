@@ -39,7 +39,7 @@ const CONFIG: Record<Tipo, Config> = {
     data: (a) => a.cancelamento || "",
     pergunta: "Por que esta apólice foi cancelada?",
     dicaComentario: "Comentário (opcional): detalhes do contato, próximo passo, se dá para recuperar o cliente...",
-    cores: { respondidas: "#c1121f", aguardando: "#f07c7c" },
+    cores: { respondidas: "#b3dcf7", aguardando: "#c1121f" },
   },
 };
 
